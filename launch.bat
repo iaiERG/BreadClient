@@ -29,6 +29,6 @@ if exist venv\ (
     )
     start /wait "" miniconda.exe /InstallationType=JustMe /RegisterPython=0 /S /D=%UserProfile%\BreadClient\Miniconda3
   )
-  .\Miniconda3\_conda.exe create -p C:\Users\Rapid\BreadClient\venv python=3.11 conda-forge::kivy conda-forge::rsa
+  .\Miniconda3\_conda.exe create -p %UserProfile%\BreadClient\venv python=3.11 conda-forge::kivy conda-forge::rsa
 )
 start venv/python.exe bread_client.py -d
