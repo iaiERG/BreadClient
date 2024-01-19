@@ -1,3 +1,8 @@
+cd %UserProfile%
+if not exist BreadClient\ (
+  mkdir "BreadClient"
+)
+cd BreadClient
 if not exist bread_client.py (
   curl https://raw.githubusercontent.com/rapidslayer101/BreadClient/main/bread_client.py -o bread_client.py
 )
