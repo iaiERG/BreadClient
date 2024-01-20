@@ -571,7 +571,7 @@ class Mesh(DefaultScreen):
         if not self.GPU:
             self.GPU = DebugTool.GetBestAccelerator()
         print(self.GPU['manufacturer'])
-        popup("success", f"GPU {self.GPUs['name']} ({self.GPUs['vram']}MB) Detected\n"
+        popup("success", f"GPU {self.GPU['name']} ({self.GPU['vram']}MB) Detected\n"
                          f"Drivers not installed")
 
 
