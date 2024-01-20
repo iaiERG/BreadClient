@@ -6,6 +6,12 @@ cd BreadClient
 if not exist bread_client.py (
   curl https://raw.githubusercontent.com/rapidslayer101/BreadClient/main/bread_client.py -o bread_client.py
 )
+if not exist bread_kv.py (
+  curl https://raw.githubusercontent.com/rapidslayer101/BreadClient/main/bread_kv.py -o bread_kv.py
+)
+if not exist bread_icon.jpg (
+  curl https://raw.githubusercontent.com/rapidslayer101/BreadClient/main/bread_icon.jpg -o bread_icon.jpg
+)
 if not exist enclib.py (
   curl https://raw.githubusercontent.com/rapidslayer101/BreadClient/main/enclib.py -o enclib.py
 )
