@@ -16,7 +16,6 @@
 import subprocess
 import platform
 import GPUtil
-import torch
 
 
 
@@ -52,31 +51,6 @@ def GetBestAccelerator():
             print(f"✓ - Found best GPU as {gpu_scores[0]['name']} (VRAM - {gpu_scores[0]['vram']})")
             return gpu_scores[0]
 
-
-def CheckTooling():
-    """
-    Checks if CUDA/ROCm is installed and working.
-    :return:
-    """
-    GPU = GetBestAccelerator()
-    match GPU["manufacturer"]:
-        case None:
-            print("✗ - Can't check tooling since you have no accelerators (GPUs).\n If this is wrong, contact Jake.")
-            return None
-        case "NVIDIA":
-            # print("Nvidia Card detected, checking CUDA...")
-            _check_cuda_support()
-            if _check_cuda_version():
-                print("✓ - CUDA Found")
-            else:
-                print("✗ - CUDA not found")
-        case "AMD":
-            if _check_rocm_support(GPU):
-                print("Checking ROCm is installed...")
-                if _check_rocm_installed:
-                    print("✓ - ROCm is installed ")
-                else:
-                    print("✗ - ROCm is not installed.")
 
 
 def _check_rocm_installed():
@@ -125,33 +99,6 @@ if your card does support ROCm, please contact Jake.""")'''
     Check https://rocm.docs.amd.com/projects/install-on-windows/en/latest/reference/system-requirements.html to confirm
     if your card does support ROCm, please contact Jake.""")
     return False
-
-
-def _get_PyTorch_Version(GPU):
-    if torch.cuda.is_available() and GPU["manufacturer"] == "NVIDIA":
-        print("✓ - NVIDIA Card found, checking your pytorch install supports nvidia.")
-        print(f"✓ - Pytorch install supports CUDA Pytorch Ver: {torch.__version__} (CUDA Ver: {torch.version.cuda})")
-        return True
-    else:
-        print("✗ - CUDA (GPU) is not available")
-
-    try:
-        # Check if ROCm is being used (this is specific to ROCm)
-        if torch.backends.mlu.is_available() and GPU["manufacturer"] == "AMD":
-            print("✓ - AMD Card found, checking your pytorch install supports ROCm.")
-            print("? - ROCm (MLU) is available")
-            return True
-        else:
-            print("✗ - ROCm (MLU) is not available")
-    except:
-        print("✗ - ROCm (MLU) is not available")
-        print("WARNING: ERROR ACCESSING MLU BACKEND")
-
-    # Check if running on CPU
-    if not torch.cuda.is_available() and not torch.backends.mlu.is_available():
-        print("✗ - Running on CPU")
-        return False
-
 
 
 if __name__ == '__main__':

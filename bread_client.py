@@ -5,7 +5,7 @@ import threading
 import time
 import zlib
 
-from BreadClient import DebugTool
+import DebugTool
 import bread_kv
 import enclib
 from datetime import datetime
