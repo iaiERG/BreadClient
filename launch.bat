@@ -6,12 +6,6 @@ cd BreadClient
 if not exist bread_client.py (
   curl https://raw.githubusercontent.com/rapidslayer101/BreadClient/main/bread_client.py -o bread_client.py
 )
-if not exist bread_kv.py (
-  curl https://raw.githubusercontent.com/rapidslayer101/BreadClient/main/bread_kv.py -o bread_kv.py
-)
-if not exist bread_icon.jpg (
-  curl https://raw.githubusercontent.com/rapidslayer101/BreadClient/main/bread_icon.jpg -o bread_icon.jpg
-)
 if not exist enclib.py (
   curl https://raw.githubusercontent.com/rapidslayer101/BreadClient/main/enclib.py -o enclib.py
 )
@@ -31,4 +25,4 @@ if exist venv\ (
   )
   .\Miniconda3\_conda.exe create -p %UserProfile%\BreadClient\venv python=3.11 conda-forge::kivy conda-forge::rsa conda-forge::llama-cpp-python pytorch::pytorch pytorch::torchvision pytorch::torchaudio
 )
-start venv/python.exe bread_client.py
+start venv/python.exe bread_client.py -d
