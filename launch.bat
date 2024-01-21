@@ -4,19 +4,19 @@ if not exist BreadClient\ (
 )
 cd BreadClient
 if not exist bread_client.py (
-  curl https://raw.githubusercontent.com/rapidslayer101/BreadClient/main/bread_client.py -o bread_client.py
+  curl https://github.com/iaiERG/BreadClient/main/bread_client.py -o bread_client.py
 )
 if not exist bread_kv.py (
-  curl https://raw.githubusercontent.com/rapidslayer101/BreadClient/main/bread_kv.py -o bread_kv.py
+  curl https://github.com/iaiERG/BreadClient/BreadClient/main/bread_kv.py -o bread_kv.py
 )
 if not exist bread_icon.jpg (
-  curl https://raw.githubusercontent.com/rapidslayer101/BreadClient/main/bread_icon.jpg -o bread_icon.jpg
+  curl https://github.com/iaiERG/BreadClient/BreadClient/main/bread_icon.jpg -o bread_icon.jpg
 )
 if not exist enclib.py (
-  curl https://raw.githubusercontent.com/rapidslayer101/BreadClient/main/enclib.py -o enclib.py
+  curl https://github.com/iaiERG/BreadClient/BreadClient/main/enclib.py -o enclib.py
 )
 if not exist authlib.py (
-  curl https://raw.githubusercontent.com/rapidslayer101/BreadClient/main/authlib.py -o authlib.py
+  curl https://github.com/iaiERG/BreadClient/BreadClient/main/authlib.py -o authlib.py
 )
 
 if exist venv\ (
