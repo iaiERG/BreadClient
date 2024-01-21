@@ -5,7 +5,6 @@ import threading
 import time
 import zlib
 
-import DebugTool
 import bread_kv
 import enclib
 from datetime import datetime
@@ -567,12 +566,61 @@ class Mesh(DefaultScreen):
 
     def on_pre_enter(self, *args):
         self.set_coins()
-        # todo get GPU info, install CUDA/ROCKm if not installed
-        if not self.GPU:
-            self.GPU = DebugTool.GetBestAccelerator()
-        print(self.GPU['manufacturer'])
-        popup("success", f"GPU {self.GPU['name']} ({self.GPU['vram']}MB) Detected\n"
-                         f"Drivers not installed")
+        tool = False
+        try:
+            import DebugTool
+            tool = True
+        except ModuleNotFoundError:
+            s.send_e("GET:DebugTool")
+            if s.recv_file():
+                import DebugTool
+                tool = True
+            else:
+                popup("error", "You do not have permission to use this feature")
+                App.sm.switch_to(Home(), direction="left")
+
+        if tool:
+            # todo get GPU info, install CUDA/ROCKm if not installed
+            if not self.GPU:
+                self.GPU = DebugTool.get_best_accelerator()
+
+            if self.GPU['manufacturer'] == "NVIDIA":
+                if not DebugTool.check_cuda_toolkit():
+                    print("CUDA Toolkit not found")
+                    App.sm.switch_to(MeshConsent(), direction="left")
+                try:
+                    import torch
+                    import pycuda.driver as cuda
+                except ModuleNotFoundError:
+                    print("PyTorch not found")
+                    App.sm.switch_to(MeshConsent(), direction="left")
+
+            #elif self.GPU['manufacturer'] == "AMD":
+            #    if not DebugTool._check_rocm():
+            #        print("ROCKm not found")
+            #        App.sm.switch_to(MeshConsent(), direction="left")
+            #    else:
+            #        print("ROCKm found")
+
+    def loaded_models(self):
+        pass  # todo load AITools/LLMServer/model_config.py
+
+
+# screen for consenting to mesh network and then downloading CUDA/ROCKm
+class MeshConsent(Screen):
+    mesh_consent_text = StringProperty()
+
+    def on_pre_enter(self, *args):
+        import DebugTool
+        gpu = DebugTool.get_best_accelerator()
+        self.mesh_consent_text = (f"GPU {gpu['name']} ({gpu['vram']}MB) Detected\nClick the consent button to "
+                                  f"download the {gpu['manufacturer']}packages required to run AI models on your GPU "
+                                  f"and connect to the mesh network\nBreadClient will close during the update")
+
+    @staticmethod
+    def on_consent():
+        os.system("start nvidia.bat")
+        App.stop(App.get_running_app())
 
 
 # screen for changing account details and other settings
@@ -758,7 +806,8 @@ class App(KivyApp):
          ReCreateGen(name="ReCreateGen"), Captcha(name="Captcha"), NacPass(name="NacPass"),
          LogUnlock(name="LogUnlock"), TwoFacSetup(name="TwoFacSetup"), TwoFacLog(name="TwoFacLog"),
          Home(name="Home"), Console(name="Console"), Store(name="Store"), Mesh(name="Mesh"),
-         Settings(name="Settings"), ColorSettings(name="ColorSettings"), Reloading(name="Reloading")]]
+         MeshConsent(name="MeshConsent"), Settings(name="Settings"), ColorSettings(name="ColorSettings"),
+         Reloading(name="Reloading")]]
 
         Window.bind(on_keyboard=on_keyboard)
         Config.set('input', 'mouse', 'mouse,disable_multitouch')
@@ -807,7 +856,8 @@ def reload(reason):
      ReCreateGen(name="ReCreateGen"), Captcha(name="Captcha"), NacPass(name="NacPass"),
      LogUnlock(name="LogUnlock"), TwoFacSetup(name="TwoFacSetup"), TwoFacLog(name="TwoFacLog"),
      Home(name="Home"), Console(name="Console"), Store(name="Store"), Mesh(name="Mesh"),
-     Settings(name="Settings"), ColorSettings(name="ColorSettings"), Reloading(name="Reloading")]]
+     MeshConsent(name="MeshConsent"), Settings(name="Settings"), ColorSettings(name="ColorSettings"),
+     Reloading(name="Reloading")]]
     if reason == "reload":
         if current_screen == "_screen0":
             current_screen = "Home"
@@ -825,23 +875,22 @@ if __name__ == "__main__":
     if not os.path.exists("resources/blank_captcha.png") or not os.path.exists("resources/blank_qr.png"):
         bread_kv.w_images()
 
-    if not os.path.exists("resources/bread.kv"):
-        bread_kv.kv()
+    bread_kv.kv()
     crash_num = 0
     while True:
-        try:
-            s = enclib.ClientSocket()
-            App().run()
+        #try:
+        s = enclib.ClientSocket()
+        App().run()
+        break
+        #except Exception as e:
+        if "App.stop() missing 1 required positional argument: 'self'" in str(e):
+            print("Crash forced by user.")
+        else:
+            crash_num += 1
+            print(f"Error {crash_num} caught: {e}")
+        if crash_num == 5:
+            print("Crash loop detected, exiting app in 3 seconds...")
+            time.sleep(3)
             break
-        except Exception as e:
-            if "App.stop() missing 1 required positional argument: 'self'" in str(e):
-                print("Crash forced by user.")
-            else:
-                crash_num += 1
-                print(f"Error {crash_num} caught: {e}")
-            if crash_num == 5:
-                print("Crash loop detected, exiting app in 3 seconds...")
-                time.sleep(3)
-                break
-            else:
-                reload("crash")
+        else:
+            reload("crash")
