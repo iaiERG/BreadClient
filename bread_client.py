@@ -3,6 +3,7 @@ import os
 import random
 import threading
 import time
+import subprocess
 import zlib
 
 import bread_kv
@@ -138,7 +139,7 @@ class KeyUnlock(Screen):
                 popup("error", "Password Blank\n- WHY IS THE BOX BLANK?")
         else:
             try:
-                user_pass = enclib.pass_to_key(self.pwd.text, enclib.default_salt, 50000)
+                user_pass = enclib.pass_to_key(self.pwd.text, enclib.default_salt)
                 ipk = enclib.dec_from_pass(App.ipk, user_pass[:40], user_pass[40:])
                 s.send_e(f"ULK:{App.uid}🱫{ipk}")
                 ulk_resp = s.recv_d(128)
@@ -333,7 +334,7 @@ class NacPass(Screen):
         elif self.nac_password_1.text != self.nac_password_2.text:
             popup("error", "Password Mismatch\n- Passwords must be the same")
         else:
-            pass_send = enclib.pass_to_key(self.nac_password_1.text, enclib.default_salt, 50000)
+            pass_send = enclib.pass_to_key(self.nac_password_1.text, enclib.default_salt)
             if App.path == "CHANGE_PASS":
                 s.send_e(pass_send)
                 App.sm.switch_to(TwoFacLog(), direction="left")
@@ -355,7 +356,7 @@ class LogUnlock(Screen):
             popup("error", "Password Blank\n- The question is, why is it blank?")
         else:
             try:
-                user_pass = enclib.pass_to_key(self.pwd.text, enclib.default_salt, 50000)
+                user_pass = enclib.pass_to_key(self.pwd.text, enclib.default_salt)
                 s.send_e(user_pass)
                 ipk = s.recv_d()
                 if ipk == "N":
@@ -563,23 +564,34 @@ class Store(DefaultScreen):
 # screen for viewing mesh network
 class Mesh(DefaultScreen):
     GPU = {}
+    tool = False
+    configs = False
 
     def on_pre_enter(self, *args):
         self.set_coins()
-        tool = False
         try:
-            import DebugTool
-            tool = True
+            import IlluminationSDK.Tools.DebugTool as DebugTool
+            self.tool = True
         except ModuleNotFoundError:
-            s.send_e("GET:DebugTool")
+            s.send_e("GET:IlluminationSDK")
             if s.recv_file():
-                import DebugTool
-                tool = True
+                pass
+                #os.system("start IlluminationSDK.zip")
+                #import IlluminationSDK.Tools.DebugTool as DebugTool
+                #self.tool = True
             else:
                 popup("error", "You do not have permission to use this feature")
                 App.sm.switch_to(Home(), direction="left")
 
-        if tool:
+        if self.tool:
+            try:
+                subprocess.check_output(['ffmpeg'], text=True)
+            except FileNotFoundError:
+                print("FFmpeg not found - installing in another window")
+                os.system("start winget install FFmpeg -e")
+            except subprocess.CalledProcessError:
+                pass
+
             # todo get GPU info, install CUDA/ROCKm if not installed
             if not self.GPU:
                 self.GPU = DebugTool.get_best_accelerator()
@@ -602,6 +614,9 @@ class Mesh(DefaultScreen):
             #    else:
             #        print("ROCKm found")
 
+        if self.configs:
+            print("Running config detection")
+
     def loaded_models(self):
         pass  # todo load AITools/LLMServer/model_config.py
 
@@ -619,7 +634,11 @@ class MeshConsent(Screen):
 
     @staticmethod
     def on_consent():
-        os.system("start nvidia.bat")
+        import DebugTool
+        if not DebugTool.check_cuda_toolkit():
+            print("CUDA Toolkit not found")
+
+        #os.system("start nvidia.bat")
         App.stop(App.get_running_app())
 
 
@@ -651,7 +670,7 @@ class Settings(DefaultScreen):
         if len(self.n_pass.text) < 9:
             popup("error", "Password Invalid\n- Password must be at least 9 characters")
         else:
-            s.send_e(f"CUP:{enclib.pass_to_key(self.n_pass.text, enclib.default_salt, 50000)}")
+            s.send_e(f"CUP:{enclib.pass_to_key(self.n_pass.text, enclib.default_salt)}")
             if s.recv_d() == "V":
                 App.path = "CHANGE_PASS"
                 App.sm.switch_to(NacPass(), direction="left")
@@ -878,19 +897,19 @@ if __name__ == "__main__":
     bread_kv.kv()
     crash_num = 0
     while True:
-        #try:
-        s = enclib.ClientSocket()
-        App().run()
-        break
-        #except Exception as e:
-        if "App.stop() missing 1 required positional argument: 'self'" in str(e):
-            print("Crash forced by user.")
-        else:
-            crash_num += 1
-            print(f"Error {crash_num} caught: {e}")
-        if crash_num == 5:
-            print("Crash loop detected, exiting app in 3 seconds...")
-            time.sleep(3)
+        try:
+            s = enclib.ClientSocket()
+            App().run()
             break
-        else:
-            reload("crash")
+        except Exception as e:
+            if "App.stop() missing 1 required positional argument: 'self'" in str(e):
+                print("Crash forced by user.")
+            else:
+                crash_num += 1
+                print(f"Error {crash_num} caught: {e}")
+            if crash_num == 5:
+                print("Crash loop detected, exiting app in 3 seconds...")
+                time.sleep(3)
+                break
+            else:
+                reload("crash")
