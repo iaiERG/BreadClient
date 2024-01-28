@@ -27,6 +27,7 @@ from kivy.utils import platform, get_color_from_hex as rgb
 # hashes client file
 app_hash = enclib.hash_a_file("bread_client.py")
 
+
 # creates a popup
 def popup(popup_type, reason):
     App.popup_text = reason
@@ -548,6 +549,7 @@ class IlluminationSDK:
         self.GPU = {}
         self.tool = False
         self.model_config = False
+        self.LLMServer = False
         self.loaded = []
         self.models = []
 
@@ -555,7 +557,7 @@ class IlluminationSDK:
         try:
             import IlluminationSDK  # todo make this load correctly
             self.tool = IlluminationSDK.Tools.DebugTool
-            self.model_config = IlluminationSDK.LLMServer.model_config
+            self.LLMServer = IlluminationSDK.LLMServer
         except ModuleNotFoundError:
             s.send_e("GET:IlluminationSDK")
             if s.recv_file():
@@ -564,7 +566,7 @@ class IlluminationSDK:
                     zip_ref.extractall("IlluminationSDK")
                 import IlluminationSDK
                 self.tool = IlluminationSDK.Tools.DebugTool
-                self.model_config = IlluminationSDK.LLMServer.model_config
+                self.LLMServer = IlluminationSDK.LLMServer
 
             else:
                 popup("error", "You do not have permission to use this feature")
@@ -604,7 +606,8 @@ class IlluminationSDK:
             print("Running config detection")
 
             # todo find out what models are downloaded
-            self.models = self.model_config.get_models()
+            self.models = self.LLMServer.model_config.get_models()
+            self.LLMServer.model_config.write_config()
             self.loaded = True
 
 
@@ -621,10 +624,17 @@ class Mesh(DefaultScreen):
 
     def on_pre_enter(self, *args):
         self.set_coins()
+
+    def on_enter(self, *args):
         if not SDK.loaded:
             SDK.load()
         self.loaded_models = SDK.models
         self.model_count = f"{len(SDK.models)} loaded"
+
+        os.system("start venv/python.exe -m llama_cpp.server --config_file IlluminationSDK/LLMServer/model_config.cfg")
+        tools = SDK.LLMServer.LLMTool.LLMTools()
+        print(tools.one_shot("you are a helpful AI model that answers questions", "how are you?", "mistral16k"))
+
 
 
 # screen for consenting to mesh network and then downloading CUDA/ROCKm
@@ -904,12 +914,15 @@ if __name__ == "__main__":
 
     bread_kv.kv()
     crash_num = 0
+    s = None
     while True:
         try:
             s = enclib.ClientSocket()
             App().run()
             break
         except Exception as e:
+            if s:
+                s.close()
             if "App.stop() missing 1 required positional argument: 'self'" in str(e):
                 print("Crash forced by user.")
             else:

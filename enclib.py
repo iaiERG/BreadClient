@@ -400,3 +400,8 @@ class ClientSocket:
                 self.send_e("N")
                 self.recv_file(32678)
 
+    def close(self):
+        self.send_e("DC")
+        self.s.close()
+        print("Connection closed")
+
