@@ -17,7 +17,7 @@ from kivy.core.window import Window
 from kivy.factory import Factory
 from kivy.graphics import Line, Color, RoundedRectangle
 from kivy.lang import Builder
-from kivy.properties import StringProperty, ObjectProperty
+from kivy.properties import StringProperty, ObjectProperty, ListProperty
 from kivy.uix.image import AsyncImage
 from kivy.uix.label import Label
 from kivy.uix.screenmanager import ScreenManager, Screen
@@ -26,25 +26,6 @@ from kivy.utils import platform, get_color_from_hex as rgb
 
 # hashes client file
 app_hash = enclib.hash_a_file("bread_client.py")
-
-# updates sha.txt with new app_hash
-version = None
-if os.path.exists("sha.txt"):
-    bread_kv.kv()
-    with open("sha.txt", "r", encoding="utf-8") as f:
-        latest_sha_, version, tme_, bld_num_, run_num_ = f.readlines()[-1].split("§")
-    print("prev", version, tme_, bld_num_, run_num_)
-    release_major, major, build, run = version.replace("V", "").split(".")
-    if latest_sha_ != app_hash:
-        run = int(run)+1
-        with open("sha.txt", "a+", encoding="utf-8") as f:
-            f.write(f"\n{app_hash}§V{release_major}.{major}.{build}.{run}"
-                    f"§TME-{str(datetime.now())[:-4].replace(' ', '_')}"
-                    f"§BLD_NM-{bld_num_[7:]}§RUN_NM-{int(run_num_[7:])+1}")
-            print(f"crnt V{release_major}.{major}.{build}.{run} "
-                  f"TME-{str(datetime.now())[:-4].replace(' ', '_')} "
-                  f"BLD_NM-{bld_num_[7:]} RUN_NM-{int(run_num_[7:])+1}")
-
 
 # creates a popup
 def popup(popup_type, reason):
@@ -568,6 +549,7 @@ class IlluminationSDK:
         self.tool = False
         self.model_config = False
         self.loaded = []
+        self.models = []
 
     def load(self):
         try:
@@ -621,6 +603,8 @@ class IlluminationSDK:
 
             print("Running config detection")
 
+            # todo find out what models are downloaded
+            self.models = self.model_config.get_models()
             self.loaded = True
 
 
@@ -629,6 +613,8 @@ SDK = IlluminationSDK()
 
 # screen for viewing mesh network
 class Mesh(DefaultScreen):
+    loaded_models = ListProperty()
+    model_count = StringProperty()
     GPU = {}
     tool = None
     loaded = None
@@ -637,9 +623,8 @@ class Mesh(DefaultScreen):
         self.set_coins()
         if not SDK.loaded:
             SDK.load()
-
-    def loaded_models(self):
-        pass
+        self.loaded_models = SDK.models
+        self.model_count = f"{len(SDK.models)} loaded"
 
 
 # screen for consenting to mesh network and then downloading CUDA/ROCKm
@@ -920,19 +905,19 @@ if __name__ == "__main__":
     bread_kv.kv()
     crash_num = 0
     while True:
-        #try:
-        s = enclib.ClientSocket()
-        App().run()
-        break
-        #except Exception as e:
-        if "App.stop() missing 1 required positional argument: 'self'" in str(e):
-            print("Crash forced by user.")
-        else:
-            crash_num += 1
-            print(f"Error {crash_num} caught: {e}")
-        if crash_num == 5:
-            print("Crash loop detected, exiting app in 3 seconds...")
-            time.sleep(3)
+        try:
+            s = enclib.ClientSocket()
+            App().run()
             break
-        else:
-            reload("crash")
+        except Exception as e:
+            if "App.stop() missing 1 required positional argument: 'self'" in str(e):
+                print("Crash forced by user.")
+            else:
+                crash_num += 1
+                print(f"Error {crash_num} caught: {e}")
+            if crash_num == 5:
+                print("Crash loop detected, exiting app in 3 seconds...")
+                time.sleep(3)
+                break
+            else:
+                reload("crash")

@@ -827,7 +827,7 @@ kv_payload = """# You can edit this file to change the UI.
             size_hint: 0.5, 0.88
             pos_hint: {"x": 0.25, "top": 0.9}
         Label:
-            text: "Loaded models {root.loaded_models()}"
+            text: f"Loaded models {root.loaded_models}"
             size_hint: 0.3, 0.1
             pos_hint: {"x": 0.35, "top": 0.9}
              
