@@ -5,6 +5,7 @@ import threading
 import time
 import subprocess
 import zlib
+import zipfile
 
 import bread_kv
 import enclib
@@ -561,29 +562,33 @@ class Store(DefaultScreen):
         self.set_coins()
 
 
-# screen for viewing mesh network
-class Mesh(DefaultScreen):
-    GPU = {}
-    tool = False
-    configs = False
+class IlluminationSDK:
+    def __init__(self):
+        self.GPU = {}
+        self.tool = False
+        self.model_config = False
+        self.loaded = []
 
-    def on_pre_enter(self, *args):
-        self.set_coins()
+    def load(self):
         try:
-            import IlluminationSDK.Tools.DebugTool as DebugTool
-            self.tool = True
+            import IlluminationSDK  # todo make this load correctly
+            self.tool = IlluminationSDK.Tools.DebugTool
+            self.model_config = IlluminationSDK.LLMServer.model_config
         except ModuleNotFoundError:
             s.send_e("GET:IlluminationSDK")
             if s.recv_file():
-                pass
-                #os.system("start IlluminationSDK.zip")
-                #import IlluminationSDK.Tools.DebugTool as DebugTool
-                #self.tool = True
+                print("Unpacking IlluminationSDK")
+                with zipfile.ZipFile("IlluminationSDK.zip", 'r') as zip_ref:
+                    zip_ref.extractall("IlluminationSDK")
+                import IlluminationSDK
+                self.tool = IlluminationSDK.Tools.DebugTool
+                self.model_config = IlluminationSDK.LLMServer.model_config
+
             else:
                 popup("error", "You do not have permission to use this feature")
                 App.sm.switch_to(Home(), direction="left")
 
-        if self.tool:
+        if self.tool and not self.loaded:
             try:
                 subprocess.check_output(['ffmpeg'], text=True)
             except FileNotFoundError:
@@ -594,10 +599,10 @@ class Mesh(DefaultScreen):
 
             # todo get GPU info, install CUDA/ROCKm if not installed
             if not self.GPU:
-                self.GPU = DebugTool.get_best_accelerator()
+                self.GPU = self.tool.get_best_accelerator()
 
             if self.GPU['manufacturer'] == "NVIDIA":
-                if not DebugTool.check_cuda_toolkit():
+                if not self.tool.check_cuda_toolkit():
                     print("CUDA Toolkit not found")
                     App.sm.switch_to(MeshConsent(), direction="left")
                 try:
@@ -607,18 +612,34 @@ class Mesh(DefaultScreen):
                     print("PyTorch not found")
                     App.sm.switch_to(MeshConsent(), direction="left")
 
-            #elif self.GPU['manufacturer'] == "AMD":
+            # elif self.GPU['manufacturer'] == "AMD":
             #    if not DebugTool._check_rocm():
             #        print("ROCKm not found")
             #        App.sm.switch_to(MeshConsent(), direction="left")
             #    else:
             #        print("ROCKm found")
 
-        if self.configs:
             print("Running config detection")
 
+            self.loaded = True
+
+
+SDK = IlluminationSDK()
+
+
+# screen for viewing mesh network
+class Mesh(DefaultScreen):
+    GPU = {}
+    tool = None
+    loaded = None
+
+    def on_pre_enter(self, *args):
+        self.set_coins()
+        if not SDK.loaded:
+            SDK.load()
+
     def loaded_models(self):
-        pass  # todo load AITools/LLMServer/model_config.py
+        pass
 
 
 # screen for consenting to mesh network and then downloading CUDA/ROCKm
@@ -626,20 +647,22 @@ class MeshConsent(Screen):
     mesh_consent_text = StringProperty()
 
     def on_pre_enter(self, *args):
-        import DebugTool
-        gpu = DebugTool.get_best_accelerator()
-        self.mesh_consent_text = (f"GPU {gpu['name']} ({gpu['vram']}MB) Detected\nClick the consent button to "
-                                  f"download the {gpu['manufacturer']}packages required to run AI models on your GPU "
-                                  f"and connect to the mesh network\nBreadClient will close during the update")
+        self.mesh_consent_text = (f"GPU {SDK.GPU['name']} ({SDK.GPU['vram']}MB) Detected\nClick the consent button to "
+                                  f"download the {SDK.GPU['manufacturer']}packages required to run AI models on your "
+                                  f"GPU and connect to the mesh network\nBreadClient will close during the update")
 
     @staticmethod
     def on_consent():
-        import DebugTool
-        if not DebugTool.check_cuda_toolkit():
+        if not SDK.tool.check_cuda_toolkit():
             print("CUDA Toolkit not found")
+            os.system("start winget install --id=Nvidia.CUDA -e")
 
-        #os.system("start nvidia.bat")
-        App.stop(App.get_running_app())
+        s.send_e("GET:nvidia.bat")
+        if s.recv_file():
+            os.system("start nvidia.bat")
+            App.stop(App.get_running_app())
+        else:
+            print("Failed to download nvidia.bat")
 
 
 # screen for changing account details and other settings
@@ -897,19 +920,19 @@ if __name__ == "__main__":
     bread_kv.kv()
     crash_num = 0
     while True:
-        try:
-            s = enclib.ClientSocket()
-            App().run()
+        #try:
+        s = enclib.ClientSocket()
+        App().run()
+        break
+        #except Exception as e:
+        if "App.stop() missing 1 required positional argument: 'self'" in str(e):
+            print("Crash forced by user.")
+        else:
+            crash_num += 1
+            print(f"Error {crash_num} caught: {e}")
+        if crash_num == 5:
+            print("Crash loop detected, exiting app in 3 seconds...")
+            time.sleep(3)
             break
-        except Exception as e:
-            if "App.stop() missing 1 required positional argument: 'self'" in str(e):
-                print("Crash forced by user.")
-            else:
-                crash_num += 1
-                print(f"Error {crash_num} caught: {e}")
-            if crash_num == 5:
-                print("Crash loop detected, exiting app in 3 seconds...")
-                time.sleep(3)
-                break
-            else:
-                reload("crash")
+        else:
+            reload("crash")

@@ -32,3 +32,4 @@ if exist venv\ (
   echo y |.\Miniconda3\_conda.exe create -p %UserProfile%\BreadClient\venv python=3.11 conda-forge::kivy conda-forge::rsa conda-forge::gputil conda-forge::psutil
 )
 start venv/python.exe bread_client.py
+exit

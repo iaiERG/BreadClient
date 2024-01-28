@@ -1,0 +1,10 @@
+/__pycache__
+/app
+/IlluminationSDK
+/Miniconda3
+/models
+/resources
+/venv
+IlluminationSDK.Zip
+miniconda.exe
+nvidia.bat
