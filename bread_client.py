@@ -548,8 +548,10 @@ class IlluminationSDK:
     def __init__(self):
         self.GPU = {}
         self.tool = False
+        self.tools = False
         self.model_config = False
         self.LLMServer = False
+        self.server = False
         self.loaded = []
         self.models = []
 
@@ -557,7 +559,6 @@ class IlluminationSDK:
         try:
             import IlluminationSDK  # todo make this load correctly
             self.tool = IlluminationSDK.Tools.DebugTool
-            self.LLMServer = IlluminationSDK.LLMServer
         except ModuleNotFoundError:
             s.send_e("GET:IlluminationSDK")
             if s.recv_file():
@@ -566,8 +567,6 @@ class IlluminationSDK:
                     zip_ref.extractall("IlluminationSDK")
                 import IlluminationSDK
                 self.tool = IlluminationSDK.Tools.DebugTool
-                self.LLMServer = IlluminationSDK.LLMServer
-
             else:
                 popup("error", "You do not have permission to use this feature")
                 App.sm.switch_to(Home(), direction="left")
@@ -576,8 +575,9 @@ class IlluminationSDK:
             try:
                 subprocess.check_output(['ffmpeg'], text=True)
             except FileNotFoundError:
-                print("FFmpeg not found - installing in another window")
+                print("FFmpeg not found - winget installing in another window")
                 os.system("start winget install FFmpeg -e")
+                popup("error", "FFmpeg not found - winget installing in another window")
             except subprocess.CalledProcessError:
                 pass
 
@@ -603,12 +603,32 @@ class IlluminationSDK:
             #    else:
             #        print("ROCKm found")
 
+            self.LLMServer = IlluminationSDK.LLMServer
             print("Running config detection")
 
             # todo find out what models are downloaded
             self.models = self.LLMServer.model_config.get_models()
             self.LLMServer.model_config.write_config()
             self.loaded = True
+
+    # todo use model config
+    def _llm_server_(self):
+        #os.system(""".\WPy64-31160\python-3.11.6.amd64\python.exe -m llama_cpp.server --model="C:/Users/scbre/BreadClient/models/TheBloke/OpenHermes-2.5-Mistral-7B-16k-GGUF/openhermes-2.5-mistral-7b-16k.Q5_K_M.gguf" --n_gpu_layers=-1 --model_alias="mistal16k" """)
+        os.system(""".\WPy64-31160\python-3.11.6.amd64\python.exe -m llama_cpp.server --config_file IlluminationSDK/LLMServer/model_config.cfg --n_gpu_layers=-1 """)
+
+    def start_server(self):
+        self.server = threading.Thread(target=self._llm_server_, daemon=True).start()
+        time.sleep(5)
+        self.tools = self.LLMServer.LLMTool.LLMTools(url="http://127.0.0.1:8000/v1")
+
+    def one_shot(self, prompt, query, model_alias):
+        if not self.tools:
+            self.start_server()
+        return self.tools.one_shot(prompt, query, model_alias)
+
+    def stop_server(self):
+        if self.server:
+            self.server.stop()
 
 
 SDK = IlluminationSDK()
@@ -631,9 +651,9 @@ class Mesh(DefaultScreen):
         self.loaded_models = SDK.models
         self.model_count = f"{len(SDK.models)} loaded"
 
-        os.system("start venv/python.exe -m llama_cpp.server --config_file IlluminationSDK/LLMServer/model_config.cfg")
-        tools = SDK.LLMServer.LLMTool.LLMTools()
-        print(tools.one_shot("you are a helpful AI model that answers questions", "how are you?", "mistral16k"))
+        #while True:
+        print(SDK.one_shot("you are a helpful AI model that answers questions", "Tell me something interesting", "mistral16k"))
+        SDK.stop_server()
 
 
 
@@ -643,21 +663,18 @@ class MeshConsent(Screen):
 
     def on_pre_enter(self, *args):
         self.mesh_consent_text = (f"GPU {SDK.GPU['name']} ({SDK.GPU['vram']}MB) Detected\nClick the consent button to "
-                                  f"download the {SDK.GPU['manufacturer']}packages required to run AI models on your "
-                                  f"GPU and connect to the mesh network\nBreadClient will close during the update")
+                                  f"close BreadClient so you can install the the {SDK.GPU['manufacturer']} packages "
+                                  f"\nrequired to run AI models on your GPU and connect to the mesh network\n\n"
+                                  f"Follow the instructions in the README for STEP 3 NVIDIA dependencies\n"
+                                  f"https://github.com/iaiERG/CNC")
 
     @staticmethod
     def on_consent():
         if not SDK.tool.check_cuda_toolkit():
-            print("CUDA Toolkit not found")
+            print("CUDA Toolkit not found - winget installing in another window")
             os.system("start winget install --id=Nvidia.CUDA -e")
 
-        s.send_e("GET:nvidia.bat")
-        if s.recv_file():
-            os.system("start nvidia.bat")
-            App.stop(App.get_running_app())
-        else:
-            print("Failed to download nvidia.bat")
+        App.stop(App.get_running_app())
 
 
 # screen for changing account details and other settings

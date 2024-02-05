@@ -20,16 +20,16 @@ if not exist authlib.py (
 )
 
 if exist venv\ (
-  echo Virtual Environment found 
+  echo Virtual Environment found
+  start venv/python.exe bread_client.py
+  exit
 ) else (
   if not exist Miniconda3\ (
     if not exist miniconda.exe (
 	  echo Downloading anaconda
 	  curl https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe -o miniconda.exe
     )
-    start /wait "" miniconda.exe /InstallationType=JustMe /RegisterPython=0 /S /D=%UserProfile%\BreadClient\Miniconda3
+    start /wait "" miniconda.exe /RegisterPython=1 /S /D=%UserProfile%\BreadClient\Miniconda3
   )
-  echo y |.\Miniconda3\_conda.exe create -p %UserProfile%\BreadClient\venv python=3.11 conda-forge::kivy conda-forge::rsa conda-forge::gputil conda-forge::psutil
+  echo --- Please follow STEP 2 in the README at https://github.com/iaiERG/CNC ---
 )
-start venv/python.exe bread_client.py
-exit
