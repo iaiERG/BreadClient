@@ -18,6 +18,9 @@ if not exist enclib.py (
 if not exist authlib.py (
   curl https://raw.githubusercontent.com/iaiERG/BreadClient/main/authlib.py -o authlib.py
 )
+if not exist base_env.yml (
+  curl https://raw.githubusercontent.com/iaiERG/BreadClient/main/base_env.yml -o base_env.yml
+)
 
 if exist venv\ (
   echo Virtual Environment found
@@ -31,5 +34,9 @@ if exist venv\ (
     )
     start /wait "" miniconda.exe /RegisterPython=1 /S /D=%UserProfile%\BreadClient\Miniconda3
   )
-  echo --- Please follow STEP 2 in the README at https://github.com/iaiERG/CNC ---
+  miniconda3\Scripts\activate.bat
+  conda env update -p %UserProfile%\BreadClient\venv --file base_env.yml
+  exit
 )
+start venv/python.exe bread_client.py
+exit
