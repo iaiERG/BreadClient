@@ -614,11 +614,11 @@ class IlluminationSDK:
     # todo use model config
     def _llm_server_(self):
         #os.system(""".\WPy64-31160\python-3.11.6.amd64\python.exe -m llama_cpp.server --model="C:/Users/scbre/BreadClient/models/TheBloke/OpenHermes-2.5-Mistral-7B-16k-GGUF/openhermes-2.5-mistral-7b-16k.Q5_K_M.gguf" --n_gpu_layers=-1 --model_alias="mistal16k" """)
-        os.system(""".\WPy64-31160\python-3.11.6.amd64\python.exe -m llama_cpp.server --config_file IlluminationSDK/LLMServer/model_config.cfg --n_gpu_layers=-1 """)
+        os.system(""".\WPy64-31160\python-3.11.6.amd64\python.exe -m llama_cpp.server --config_file "IlluminationSDK/LLMServer/model_config.cfg" """)
 
     def start_server(self):
         self.server = threading.Thread(target=self._llm_server_, daemon=True).start()
-        time.sleep(5)
+        time.sleep(7.5)
         self.tools = self.LLMServer.LLMTool.LLMTools(url="http://127.0.0.1:8000/v1")
 
     def one_shot(self, prompt, query, model_alias):
@@ -653,7 +653,7 @@ class Mesh(DefaultScreen):
 
         #while True:
         print(SDK.one_shot("you are a helpful AI model that answers questions", "Tell me something interesting", "mistral16k"))
-        SDK.stop_server()
+        #SDK.stop_server()
 
 
 
